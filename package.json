@@ -4,6 +4,8 @@
   "description": "Backend server for guttler app",
   "main": "server.js",
   "dependencies": {
+    "body-parser": "^1.15.1",
+    "express": "^4.13.4",
     "firebase": "^3.0.4"
   },
   "devDependencies": {},
