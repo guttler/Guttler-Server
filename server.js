@@ -5,8 +5,8 @@
 /******************************** Base Package Setup ********************************/
 var express = require('express');
 var app = express();
-var firebase = require("firebase");
 var bodyParser = require("body-parser");
+var firebase = require("firebase");
 
 // Setting firebase credentials and database address
 firebase.initializeApp({
@@ -22,7 +22,14 @@ app.use(bodyParser.json());
 /*************************************** APIs ***************************************/
 // Routes for api
 var router = express.Router();
-// Test route to make sure api is working
+
+// Middleware to verify token(to be implemented...), it will be called everytime a request is sent to API
+router.use(function(req, res, next) {
+    console.log('A request is coming in.');
+    next();
+});
+
+// Test route to make sure APIs are working
 router.get('/', function(req, res) {
     res.json({ message: 'Guttler-Server APIs are running.' });
 });
