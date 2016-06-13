@@ -34,16 +34,16 @@ api.get('/', (req, res)=> {
 // TODO: Figure out how to add Chinese characters
 api.post('/placesAdd', (req, res)=> {
   placeRef.push({
-    name: req.headers.name,
-    category: req.headers.category,
-    subcategory: req.headers.subcategory,
-    address: req.headers.address,
-    city: req.headers.city,
-    state: req.headers.state,
-    zip: req.headers.zip,
-    phone: req.headers.phone,
-    website: req.headers.website,
-    description: req.headers.description
+    name: req.body.name,
+    category: req.body.category,
+    subcategory: req.body.subcategory,
+    address: req.body.address,
+    city: req.body.city,
+    state: req.body.state,
+    zip: req.body.zip,
+    phone: req.body.phone,
+    website: req.body.website,
+    description: req.body.description
   })
   res.json({ message: 'Place added' })
 })
