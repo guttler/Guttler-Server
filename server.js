@@ -94,7 +94,7 @@ api.post('/placesUniversalSearch', (req, res)=> {
   placeRef.on("value", snapshot=> {
     allData = snapshot.val()
   }, errorObject=> {
-    console.log("The read failed: " + errorObject.code)
+    console.log("All places retrieval failed: " + errorObject.code)
   })
   // Then change the object into normal json format
   // TODO: Implement the step
@@ -102,6 +102,7 @@ api.post('/placesUniversalSearch', (req, res)=> {
   allResults = searchFor(term, allData)
   // And sort of the first 20 objects by distance from the appointed geolocation
   // TODO: Implement the step
+  res.json(results)
 })
 // Registering out routes, all of our routes will be prefixed with /api
 app.use('/', api)
