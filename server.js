@@ -19,6 +19,10 @@ app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
 
 /** ******************************* Global Functions ******************************* **/
+// Function for trimming white spaces on both sides of the string, used in api.post('/placesUniversalSearch')
+function trim(x) {
+    return x.replace(/^\s+|\s+$/gm,'');
+}
 // Function for comparing 2 json objects, used in itemExists()
 function compareObjects(o1, o2) {
   var k = ''
@@ -36,7 +40,7 @@ function compareObjects(o1, o2) {
 }
 // Function for checking if an item exists, used in searchFor()
 function itemExists(haystack, needle) {
-  for (var i = 0; i < haystack.length; i++) {
+  for (var i = 0; i < Object.keys(haystack).length; i++) {
     if (compareObjects(haystack[i], needle)) {
       return true
     }
@@ -46,7 +50,7 @@ function itemExists(haystack, needle) {
 // Function for searching a specific term in a json object, used in api.post('/placesUniversalSearch')
 function searchFor(term, allData) {
   var results = []
-  for (var i = 0; i < allData.length; i++) {
+  for (var i in allData) {
     for (var key in allData[i]) {
       if (allData[i][key].indexOf(term)!=-1) {
         if (!itemExists(results, allData[i])) {
@@ -56,6 +60,18 @@ function searchFor(term, allData) {
     }
   }
   return results
+}
+// Function for modify the Firebase data package so that the id of each object is within the object, used in api.post('/placesUniversalSearch')
+function insertID(rawData) {
+  // Getting all the IDs into an array
+  var IDs = Object.keys(rawData)
+  var i = 0
+  // Insert them into the object
+  for (var keys in rawData) {
+    rawData[keys]['id'] = IDs[i]
+    i++
+  }
+  return rawData
 }
 
 /** ************************************* APIs ************************************* **/
@@ -86,23 +102,34 @@ api.post('/placesAdd', (req, res)=> {
   })
   res.json({ message: 'Place added' })
 })
-// API for universal search
-api.post('/placesUniversalSearch', (req, res)=> {
-  var allData, allResults, results
-  const term = req.body.term.trim()
-  // First retrieve all the objects from firebase
+// API for getting all instances from "Places" table, created for testing purposes, don't use it for client
+api.get('/getAllPlaces', (req, res)=> {
   placeRef.on("value", snapshot=> {
-    allData = snapshot.val()
+    res.json(snapshot.val())
   }, errorObject=> {
     console.log("All places retrieval failed: " + errorObject.code)
   })
-  // Then change the object into normal json format
-  // TODO: Implement the step
-  // Next try to search all of the objects based on the term
-  allResults = searchFor(term, allData)
-  // And sort of the first 20 objects by distance from the appointed geolocation
-  // TODO: Implement the step
-  res.json(results)
+})
+// API for universal search
+api.post('/placesUniversalSearch', (req, res)=> {
+  if (!req.body.term) {
+    res.json({ message: '' })
+    return
+  }
+  const term = trim(req.body.term)
+  // First retrieve all the objects from Firebase
+  placeRef.on("value", snapshot=> {
+    var allData = snapshot.val()
+    // Then modify the data package so that the id of each object is within the object
+    allData = insertID(allData)
+    // Next try to search all of the objects based on the term
+    allData = searchFor(term, allData)
+    // And sort of the first 20 objects by distance from the appointed geolocation
+    // TODO: Implement the step
+    res.json(allData)
+  }, errorObject=> {
+    console.log("All places retrieval failed: " + errorObject.code)
+  })
 })
 // Registering out routes, all of our routes will be prefixed with /api
 app.use('/', api)
