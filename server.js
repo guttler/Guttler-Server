@@ -73,6 +73,49 @@ function insertID(rawData) {
   }
   return rawData
 }
+// Function for turning Degress to Radius, used in getDistanceFromLatLonInKm()
+function deg2rad(deg) {
+  return deg * (Math.PI / 180)
+}
+// Function for calculating the shortest distance over the earth’s surface between 2 points, used in getPlacesNearby()
+function getDist(lat1, lon1, lat2, lon2) {
+  var R = 6371 // Radius of the earth in km
+  var dLat = deg2rad(lat2 - lat1)  // deg2rad below
+  var dLon = deg2rad(lon2 - lon1)
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+  var d = R * c // Distance in km
+  return d
+}
+// Function for finding the closest 20 places near a certain location, used in api.post('/placesUniversalSearch')
+function getPlacesNearby(lat, lon, allData) {
+  var results, temp
+  var count, i, j = 0
+  // Filter out the closest 20 places
+  for (i = 0; i < allData.length; i++) {
+    for (j = 0; j < (allData.length - i - 1); j++) {
+      if (getDist(lat, lon, allData[j].lat, allData[j].lon) > getDist(lat, lon, allData[j+1].lat, allData[j+1].lon)) {
+        temp = allData[j]
+        allData[j] = allData[j+1]
+        allData[j+1] = temp
+      }
+    }
+  }
+  for (i = 0; i < 20; i++) {
+    results[i] = allData[i]
+  }
+  // Rearrange array of places from most popular to least popular
+  for (i = 0; i < 20; i++) {
+    for (j = 0; j < (20 - i - 1); j++) {
+      if (results[j].popularity < results[j+1].popularity) {
+        temp = results[j]
+        results[j] = results[j+1]
+        results[j+1] = temp
+      }
+    }
+  }
+  return results
+}
 
 /** ************************************* APIs ************************************* **/
 // Route for api
@@ -98,7 +141,10 @@ api.post('/placesAdd', (req, res)=> {
     zip: req.body.zip,
     phone: req.body.phone,
     website: req.body.website,
-    description: req.body.description
+    description: req.body.description,
+    popularity: req.body.popularity,
+    lat: req.body.lat,
+    lon: req.body.lon
   })
   res.json({ message: 'Place added' })
 })
@@ -124,8 +170,11 @@ api.post('/placesUniversalSearch', (req, res)=> {
     allData = insertID(allData)
     // Next try to search all of the objects based on the term
     allData = searchFor(term, allData)
-    // And sort of the first 20 objects by distance from the appointed geolocation
-    // TODO: Implement the step
+    // And get the first 20 objects by distance from the appointed geolocation, and sort them by popularity
+    if (allData.length > 20) {
+      allData = getPlacesNearby(req.body.lat, req.body.lon, allData)
+    }
+    // TODO: Make the array of data back into Firebase json format to maintain consistency
     res.json(allData)
   }, errorObject=> {
     console.log("All places retrieval failed: " + errorObject.code)
