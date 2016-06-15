@@ -6,6 +6,7 @@ var express = require('express')
 var app = express()
 var bodyParser = require('body-parser')
 var firebase = require('firebase')
+var uuid = require('node-uuid')
 // Setting firebase credentials and database address
 firebase.initializeApp({
   serviceAccount: './serviceAccountCredentials.json',
@@ -18,10 +19,29 @@ var placeRef = db.ref('/Places')
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
 
-/** ******************************* Global Functions ******************************* **/
+/** ************************* Global Variables & Functions ************************* **/
+// Temporary places object that is updated along with Firebase Places table in realtime
+var placesDB = []
+placeRef.on("child_added", function(snapshot) {
+  placesDB.push(snapshot.val())
+})
+placeRef.on("child_changed", function(snapshot) {
+  for (var i = 0; i < placesDB.length; i++) {
+    if (placesDB[i].id === snapshot.val().id) {
+      placesDB[i] = snapshot.val()
+      break
+    }
+  }
+})
+placeRef.on("child_removed", function(snapshot) {
+  var index = placesDB.indexOf(snapshot.val())
+  if (index > -1) {
+    array.splice(index, 1)
+  }
+})
 // Function for trimming white spaces on both sides of the string, used in api.post('/placesUniversalSearch')
 function trim(x) {
-    return x.replace(/^\s+|\s+$/gm,'');
+  return x.replace(/^\s+|\s+$/gm,'');
 }
 // Function for comparing 2 json objects, used in itemExists()
 function compareObjects(o1, o2) {
@@ -47,31 +67,21 @@ function itemExists(haystack, needle) {
   }
   return false
 }
-// Function for searching a specific term in a json object, used in api.post('/placesUniversalSearch')
+// Function for searching a specific term in an array of objects, used in api.post('/placesUniversalSearch')
 function searchFor(term, allData) {
   var results = []
-  for (var i in allData) {
-    for (var key in allData[i]) {
-      if (allData[i][key].indexOf(term)!=-1) {
-        if (!itemExists(results, allData[i])) {
-          results.push(allData[i])
+  for (var j = 0; j < term.length; j++) {
+    for (var i = 0; i < allData.length; i++) {
+      for (var key in allData[i]) {
+        if (allData[i][key].indexOf(term)!=-1) {
+          if (!itemExists(results, allData[i])) {
+            results.push(allData[i])
+          }
         }
       }
     }
   }
   return results
-}
-// Function for modify the Firebase data package so that the id of each object is within the object, used in api.post('/placesUniversalSearch')
-function insertID(rawData) {
-  // Getting all the IDs into an array
-  var IDs = Object.keys(rawData)
-  var i = 0
-  // Insert them into the object
-  for (var keys in rawData) {
-    rawData[keys]['id'] = IDs[i]
-    i++
-  }
-  return rawData
 }
 // Function for turning Degress to Radius, used in getDistanceFromLatLonInKm()
 function deg2rad(deg) {
@@ -104,17 +114,7 @@ function getPlacesNearby(lat, lon, allData) {
   for (i = 0; i < 20; i++) {
     results[i] = allData[i]
   }
-  // Rearrange array of places from most popular to least popular
-  for (i = 0; i < 20; i++) {
-    for (j = 0; j < (20 - i - 1); j++) {
-      if (results[j].popularity < results[j+1].popularity) {
-        temp = results[j]
-        results[j] = results[j+1]
-        results[j+1] = temp
-      }
-    }
-  }
-  return results
+  return results.reverse()
 }
 
 /** ************************************* APIs ************************************* **/
@@ -132,6 +132,7 @@ api.get('/', (req, res)=> {
 // API for adding an instance to "Places" table, created for testing purposes, don't use it for client
 api.post('/placesAdd', (req, res)=> {
   placeRef.push({
+    id: uuid.v4(),
     name: req.body.name,
     category: req.body.category,
     subcategory: req.body.subcategory,
@@ -143,6 +144,7 @@ api.post('/placesAdd', (req, res)=> {
     website: req.body.website,
     description: req.body.description,
     popularity: req.body.popularity,
+    rating: req.body.rating,
     lat: req.body.lat,
     lon: req.body.lon
   })
@@ -150,7 +152,7 @@ api.post('/placesAdd', (req, res)=> {
 })
 // API for getting all instances from "Places" table, created for testing purposes, don't use it for client
 api.get('/getAllPlaces', (req, res)=> {
-  placeRef.on("value", snapshot=> {
+  placeRef.once("value", snapshot=> {
     res.json(snapshot.val())
   }, errorObject=> {
     console.log("All places retrieval failed: " + errorObject.code)
@@ -161,24 +163,17 @@ api.post('/placesUniversalSearch', (req, res)=> {
   if (!req.body.term) {
     res.json({ message: '' })
     return
-  }
-  const term = trim(req.body.term)
-  // First retrieve all the objects from Firebase
-  placeRef.on("value", snapshot=> {
-    var allData = snapshot.val()
-    // Then modify the data package so that the id of each object is within the object
-    allData = insertID(allData)
-    // Next try to search all of the objects based on the term
-    allData = searchFor(term, allData)
+  } else {
+    // Get the terms, trim the white spaces around the terms, and separate all the words inside terms into an array
+    var terms = trim(req.body.term).split(' ')
+    // Search for all of the objects based on the terms
+    var allData = searchFor(terms, placesDB)
     // And get the first 20 objects by distance from the appointed geolocation, and sort them by popularity
     if (allData.length > 20) {
       allData = getPlacesNearby(req.body.lat, req.body.lon, allData)
     }
-    // TODO: Make the array of data back into Firebase json format to maintain consistency
     res.json(allData)
-  }, errorObject=> {
-    console.log("All places retrieval failed: " + errorObject.code)
-  })
+  }
 })
 // Registering out routes, all of our routes will be prefixed with /api
 app.use('/', api)
