@@ -131,10 +131,6 @@ api.use(function (req, res, next) {
     auth.verifyIdToken(idToken).then(decodedToken=> {
       var uid = decodedToken.sub
       next()
-    }, error=> {
-      if (error) {
-        res.status(403).send({success: false, message: "Failed to authenticate user."})
-      }
     })
   }
 })
