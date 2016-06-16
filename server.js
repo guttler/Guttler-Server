@@ -15,6 +15,8 @@ firebase.initializeApp({
 // Connecting to firebase database and get the reference of each data object type
 var db = firebase.database()
 var placeRef = db.ref('/Places')
+// Getting the authorization object of firebase
+var auth = firebase.auth()
 // Configure app to use bodyParser(), which will let us get the data from a POST
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
@@ -120,10 +122,21 @@ function getPlacesNearby(lat, lon, allData) {
 /** ************************************* APIs ************************************* **/
 // Route for api
 var api = express.Router()
-// TODO: Middleware to verify token, it will be called everytime a request is sent to API
+// Middleware to verify token, it will be called everytime a request is sent to API
 api.use(function (req, res, next) {
-  console.log('A request is coming in.')
-  next()
+  if (!(req.headers.token || req.body.token || req.param('token') || req.headers['x-access-token'])) {
+    res.status(403).send({ success: false, message: "No Token Provided." })
+  } else {
+    var idToken = req.headers.token || req.body.token || req.param('token') || req.headers['x-access-token']
+    auth.verifyIdToken(idToken).then(decodedToken=> {
+      var uid = decodedToken.sub
+      next()
+    }, error=> {
+      if (error) {
+        res.status(403).send({success: false, message: "Failed to authenticate user."})
+      }
+    })
+  }
 })
 // Test route to make sure APIs are working
 api.get('/', (req, res)=> {
