@@ -36,7 +36,7 @@ placeRef.on("child_changed", function(snapshot) {
 placeRef.on("child_removed", function(snapshot) {
   var index = placesDB.indexOf(snapshot.val())
   if (index > -1) {
-    array.splice(index, 1)
+    placesDB.splice(index, 1)
   }
 })
 // Function for trimming white spaces on both sides of the string, used in api.post('/placesUniversalSearch')
@@ -73,7 +73,7 @@ function searchFor(term, allData) {
   for (var j = 0; j < term.length; j++) {
     for (var i = 0; i < allData.length; i++) {
       for (var key in allData[i]) {
-        if (allData[i][key].indexOf(term)!=-1) {
+        if (allData[i][key].indexOf(term[j])!=-1) {
           if (!itemExists(results, allData[i])) {
             results.push(allData[i])
           }
@@ -90,16 +90,16 @@ function deg2rad(deg) {
 // Function for calculating the shortest distance over the earth’s surface between 2 points, used in getPlacesNearby()
 function getDist(lat1, lon1, lat2, lon2) {
   var R = 6371 // Radius of the earth in km
-  var dLat = deg2rad(lat2 - lat1)  // deg2rad below
+  var dLat = deg2rad(lat2 - lat1)  // deg2rad above
   var dLon = deg2rad(lon2 - lon1)
   var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
   var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-  var d = R * c // Distance in km
-  return d
+  return R * c // Distance in km
 }
 // Function for finding the closest 20 places near a certain location, used in api.post('/placesUniversalSearch')
 function getPlacesNearby(lat, lon, allData) {
-  var results, temp
+  var temp = {}
+  var results = []
   var count, i, j = 0
   // Filter out the closest 20 places
   for (i = 0; i < allData.length; i++) {
@@ -114,7 +114,7 @@ function getPlacesNearby(lat, lon, allData) {
   for (i = 0; i < 20; i++) {
     results[i] = allData[i]
   }
-  return results.reverse()
+  return results
 }
 
 /** ************************************* APIs ************************************* **/
@@ -168,11 +168,12 @@ api.post('/placesUniversalSearch', (req, res)=> {
     var terms = trim(req.body.term).split(' ')
     // Search for all of the objects based on the terms
     var allData = searchFor(terms, placesDB)
-    // And get the first 20 objects by distance from the appointed geolocation, and sort them by popularity
+    // And get the first 20 objects by distance from the appointed geolocation
     if (allData.length > 20) {
       allData = getPlacesNearby(req.body.lat, req.body.lon, allData)
     }
-    res.json(allData)
+    // Sort the array of results by ratings in desc and respond
+    res.json(allData.sort(function(a,b) {return (a.rating > b.rating) ? 1 : ((b.rating > a.rating) ? -1 : 0);} ).reverse())
   }
 })
 // Registering out routes, all of our routes will be prefixed with /api
