@@ -16,7 +16,7 @@ firebase.initializeApp({
 var db = firebase.database()
 var placeRef = db.ref('/Places')
 // Getting the authorization object of firebase
-var auth = firebase.auth()
+var Auth = firebase.auth()
 // Configure app to use bodyParser(), which will let us get the data from a POST
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
@@ -42,11 +42,11 @@ placeRef.on("child_removed", function(snapshot) {
   }
 })
 // Function for trimming white spaces on both sides of the string, used in api.post('/placesUniversalSearch')
-function trim(x) {
+var trim = x=> {
   return x.replace(/^\s+|\s+$/gm,'');
 }
 // Function for comparing 2 json objects, used in itemExists()
-function compareObjects(o1, o2) {
+var compareObjects = (o1, o2)=> {
   var k = ''
   for (k in o1) {
     if (o1[k] != o2[k]) {
@@ -61,7 +61,7 @@ function compareObjects(o1, o2) {
   return true
 }
 // Function for checking if an item exists, used in searchFor()
-function itemExists(haystack, needle) {
+var itemExists = (haystack, needle)=> {
   for (var i = 0; i < Object.keys(haystack).length; i++) {
     if (compareObjects(haystack[i], needle)) {
       return true
@@ -70,7 +70,7 @@ function itemExists(haystack, needle) {
   return false
 }
 // Function for searching a specific term in an array of objects, used in api.post('/placesUniversalSearch')
-function searchFor(term, allData) {
+var searchFor = (term, allData)=> {
   var results = []
   for (var j = 0; j < term.length; j++) {
     for (var i = 0; i < allData.length; i++) {
@@ -86,11 +86,11 @@ function searchFor(term, allData) {
   return results
 }
 // Function for turning Degress to Radius, used in getDistanceFromLatLonInKm()
-function deg2rad(deg) {
+var deg2rad = (deg)=> {
   return deg * (Math.PI / 180)
 }
 // Function for calculating the shortest distance over the earth’s surface between 2 points, used in getPlacesNearby()
-function getDist(lat1, lon1, lat2, lon2) {
+var getDist = (lat1, lon1, lat2, lon2)=> {
   var R = 6371 // Radius of the earth in km
   var dLat = deg2rad(lat2 - lat1)  // deg2rad above
   var dLon = deg2rad(lon2 - lon1)
@@ -99,7 +99,7 @@ function getDist(lat1, lon1, lat2, lon2) {
   return R * c // Distance in km
 }
 // Function for finding the closest 20 places near a certain location, used in api.post('/placesUniversalSearch')
-function getPlacesNearby(lat, lon, allData) {
+var getPlacesNearby = (lat, lon, allData)=> {
   var temp = {}
   var results = []
   var count, i, j = 0
@@ -118,25 +118,42 @@ function getPlacesNearby(lat, lon, allData) {
   }
   return results
 }
+// Function for adding a user, and it returns a user object
+var addUserWithEmail = (email, pw)=> {
+  var user = Auth.createUserWithEmailAndPassword(email, pw).catch(error=>{
+    if (error.code) {
+      return {
+        errorCode: error.code,
+        errorMessage: error.message
+      }
+    } else {
+        return getToken()
+    }
+  })
+}
 
 /** ************************************* APIs ************************************* **/
 // Route for api
 var api = express.Router()
 // Middleware to verify token, it will be called everytime a request is sent to API
-api.use(function (req, res, next) {
-  if (!(req.headers.token || req.body.token || req.param('token') || req.headers['x-access-token'])) {
-    res.status(403).send({ success: false, message: "No Token Provided." })
-  } else {
-    var idToken = req.headers.token || req.body.token || req.param('token') || req.headers['x-access-token']
-    auth.verifyIdToken(idToken).then(decodedToken=> {
-      var uid = decodedToken.sub
-      next()
-    })
-  }
-})
+// api.use(function (req, res, next) {
+//   if (!(req.headers.token || req.body.token || req.param('token') || req.headers['x-access-token'])) {
+//     res.status(403).send({ success: false, message: "No Token Provided." })
+//   } else {
+//     var idToken = req.headers.token || req.body.token || req.param('token') || req.headers['x-access-token']
+//     Auth.verifyIdToken(idToken).then(decodedToken=> {
+//       var uid = decodedToken.sub
+//       next()
+//     })
+//   }
+// })
 // Test route to make sure APIs are working
 api.get('/', (req, res)=> {
   res.json({ message: 'Guttler-Server APIs are running.' })
+})
+// API for creating a user and getting its credentials
+api.post('/userAdd', (req, res)=> {
+  res.json(addUserWithEmail(req.body.email, req.body.password))
 })
 // API for adding an instance to "Places" table, created for testing purposes, don't use it for client
 api.post('/placesAdd', (req, res)=> {
