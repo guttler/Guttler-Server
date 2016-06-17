@@ -118,24 +118,11 @@ var getPlacesNearby = (lat, lon, allData)=> {
   }
   return results
 }
-// Function for adding a user, and it returns a user object
-var addUserWithEmail = (email, pw)=> {
-  var user = Auth.createUserWithEmailAndPassword(email, pw).catch(error=>{
-    if (error.code) {
-      return {
-        errorCode: error.code,
-        errorMessage: error.message
-      }
-    } else {
-        return getToken()
-    }
-  })
-}
 
 /** ************************************* APIs ************************************* **/
 // Route for api
 var api = express.Router()
-// Middleware to verify token, it will be called everytime a request is sent to API
+// TODO: Middleware to verify token, it will be called everytime a request is sent to API
 // api.use(function (req, res, next) {
 //   if (!(req.headers.token || req.body.token || req.param('token') || req.headers['x-access-token'])) {
 //     res.status(403).send({ success: false, message: "No Token Provided." })
@@ -150,10 +137,6 @@ var api = express.Router()
 // Test route to make sure APIs are working
 api.get('/', (req, res)=> {
   res.json({ message: 'Guttler-Server APIs are running.' })
-})
-// API for creating a user and getting its credentials
-api.post('/userAdd', (req, res)=> {
-  res.json(addUserWithEmail(req.body.email, req.body.password))
 })
 // API for adding an instance to "Places" table, created for testing purposes, don't use it for client
 api.post('/placesAdd', (req, res)=> {
