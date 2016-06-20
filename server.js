@@ -170,7 +170,10 @@ api.get('/getAllPlaces', (req, res)=> {
 // API for universal search
 api.post('/placesUniversalSearch', (req, res)=> {
   if (!req.body.term) {
-    res.json({ message: '' })
+    res.json({ message: 'Please input some terms' })
+    return
+  } else if (!(req.body.lon && req.body.lat)) {
+    res.json({ message: 'Please include longitude and latitude' })
     return
   } else {
     // Get the terms, trim the white spaces around the terms, and separate all the words inside terms into an array
