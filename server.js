@@ -124,10 +124,10 @@ var getPlacesNearby = (lat, lon, allData)=> {
 var api = express.Router()
 // Middleware to verify token, it will be called everytime a request is sent to API
 api.use(function (req, res, next) {
-  if (!(req.headers.token || req.body.token || req.param('token') || req.headers['x-access-token'])) {
+  if (!req.headers.token) {
     res.status(403).send({ success: false, message: "No Token Provided." })
   } else {
-    var idToken = req.headers.token || req.body.token || req.param('token') || req.headers['x-access-token']
+    var idToken = req.headers.token
     Auth.verifyIdToken(idToken).then(decodedToken=> {
       var uid = decodedToken.sub
       next()
