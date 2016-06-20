@@ -122,18 +122,18 @@ var getPlacesNearby = (lat, lon, allData)=> {
 /** ************************************* APIs ************************************* **/
 // Route for api
 var api = express.Router()
-// TODO: Middleware to verify token, it will be called everytime a request is sent to API
-// api.use(function (req, res, next) {
-//   if (!(req.headers.token || req.body.token || req.param('token') || req.headers['x-access-token'])) {
-//     res.status(403).send({ success: false, message: "No Token Provided." })
-//   } else {
-//     var idToken = req.headers.token || req.body.token || req.param('token') || req.headers['x-access-token']
-//     Auth.verifyIdToken(idToken).then(decodedToken=> {
-//       var uid = decodedToken.sub
-//       next()
-//     })
-//   }
-// })
+// Middleware to verify token, it will be called everytime a request is sent to API
+api.use(function (req, res, next) {
+  if (!(req.headers.token || req.body.token || req.param('token') || req.headers['x-access-token'])) {
+    res.status(403).send({ success: false, message: "No Token Provided." })
+  } else {
+    var idToken = req.headers.token || req.body.token || req.param('token') || req.headers['x-access-token']
+    Auth.verifyIdToken(idToken).then(decodedToken=> {
+      var uid = decodedToken.sub
+      next()
+    })
+  }
+})
 // Test route to make sure APIs are working
 api.get('/', (req, res)=> {
   res.json({ message: 'Guttler-Server APIs are running.' })
