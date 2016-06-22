@@ -29,6 +29,22 @@ var createToken = user=> {
   })
   return token
 }
+// Function to verify token, it will be called on specific APIs that need to be secured
+var auth = (req, res, next)=> {
+  var token = req.headers.token
+  if (token) {
+    jwt.verify(token, secret, (err, decoded)=> {
+      if (err) {
+        res.status(403).send({ success: false, message: "Failed to authenticate user." })
+      } else {
+        req.decoded = decoded
+        next()
+      }
+    })
+  } else {
+    res.status(403).send({ success: false, message: "No Token Provided." })
+  }
+}
 // Function for trimming white spaces on both sides of the string, used in api.post('/placesUniversalSearch')
 var trim = x=> {
   return x.replace(/^\s+|\s+$/gm,'');
@@ -116,22 +132,6 @@ module.exports = (app, express)=> {
   api.get('/', (req, res)=> {
     res.json({ message: 'Guttler-Server APIs are running.' })
   })
-  // Middleware to verify token, it will be called everytime a request is sent to API
-  api.use((req, res, next)=> {
-    var token = req.headers.token
-    if (token) {
-      jwt.verify(token, secret, (err, decoded)=> {
-        if (err) {
-          res.status(403).send({ success: false, message: "Failed to authenticate user." })
-        } else {
-          req.decoded = decoded
-          next()
-        }
-      })
-    } else {
-      res.status(403).send({ success: false, message: "No Token Provided." })
-    }
-  })
 
   // User:
   // Sign In with email API
@@ -189,11 +189,11 @@ module.exports = (app, express)=> {
 
   // Place:
   // API for adding an instance to "Places" table
-  api.post('/addPlace', (req, res)=> {
+  api.post('/addPlace', auth, (req, res)=> {
     var place = new Place({
       name: req.body.name,
       category: req.body.category,
-      subcategory: req.body.subcategory,
+      subCategory: req.body.subCategory,
       address: req.body.address,
       city: req.body.city,
       state: req.body.state,
@@ -203,8 +203,14 @@ module.exports = (app, express)=> {
       description: req.body.description,
       popularity: req.body.popularity,
       rating: req.body.rating,
+      hours: req.body.hours,
+      lon: req.body.lon,
       lat: req.body.lat,
-      lon: req.body.lon
+      ownerEmail: req.body.ownerEmail,
+      hotelStars: req.body.hotelStars,
+      restaurantTaste: req.body.restaurantTaste,
+      restaurantEnv: req.body.restaurantEnv,
+      restaurantService: req.body.restaurantService
     })
     place.save((err, newPlace)=> {
       if (err) {

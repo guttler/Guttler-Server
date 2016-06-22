@@ -14,35 +14,39 @@
 
 ## Accessing APIs
 
-1. A token must be provided inside the header of the network request, the format would just be { token: XXXXXXXXXX }
+1. A token must be provided inside the **headers** of the network request unless you are signing in or signing up, the format would just be { token: XXXXXXXXXX }
 
-2. You can access testing APIs only if you are authorized as a dev
+2. You can access testing APIs only if you are authorized as a dev (for now there aren't any yet...)
 
 ## API Reference
 
-1. Testing API:
+1. Client API:
 
  **get('/')**
- - Test route to make sure APIs are working
+ - Test route to make sure APIs are running
  - Return value: { message: 'Guttler-Server APIs are running.' }
 
- **post('/placesAdd')**
+ **post('/signInWithEmail')**
+ - Normal sign in method with a unique email and password
+ - Return value: { message: "Login Successfully!", token: token }
+
+ **post('/signUpWithEmail')**
+ - Normal sign up method that require many other fields
+ - Return value: { message: 'User created!', token: token }
+
+ **post('/addPlace')**
  - API for adding an instance to "Places" table
  - Return value: { message: 'Place added' }
 
- **get('/getAllPlaces')**
- - API for getting all instances from "Places" table
- - Return value: all the objects from "Places" table
-
-2. Client API:
-
- **post('/placesUinversalSearch')**
- - API for universal search of "Places" table, technically it is searching inside the placesDB object in the server, explanation is below in the placesDB section
+ **post('/placesUniversalSearch')**
+ - API for text search of "Places" table
  - Return value: an array of at most 20 "Places" object
 
-## placesDB
+ More to come...
 
-This is an array of objects that is updated in real time as the "Places" table. The purpose of this array is to make placesUniversalSearch() more efficient.
+2. Testing API:
+
+ There aren't any yet...
 
 ## Contributor
 
