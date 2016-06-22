@@ -26,7 +26,7 @@ var PlaceSchema = new Schema ({
     type: Number,
     requied: true
   },
-  hours: Array,
+  hours: Array,  // hours[0] = Sunday
   lon: {
     type: Number,
     requied: true
