@@ -206,7 +206,7 @@ var authOwner = (req, res, next)=> {
           req.decoded = decoded
           next()
         } else {
-          res.status(403).send({ success: false, message: "User is not an owner" })
+          res.status(403).send({ success: false, message: "User is not an owner or admin" })
         }
       }
     })
