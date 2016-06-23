@@ -55,6 +55,7 @@
 
  **post('/searchPlaces')**
  - API for text search of "Places" table
+ - WARNING: unable to search with numbers because of MongoDB
  - **Parameters:** terms: the user input, lon and lat: longitude and latitude of a geolocation, can be user's current location or user's selected location on the map
  - **Return value:** an **array** of at most 20 "Places" object
 

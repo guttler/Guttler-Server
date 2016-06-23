@@ -110,22 +110,19 @@ module.exports = (app, express)=> {
       res.json({ message: 'Please include longitude and latitude' })
       return
     } else {
+      // Get the terms, trim the white spaces around the terms, and separate all the words inside terms into an array
+      var terms = trim(req.body.terms).split(' ')
       // Search for all of the objects based on the terms
-      Place.find({ $text: { $search: req.body.terms } }, (err, placesObj)=> {
-        if (err) {
-          res.send(err)
-          return
-        } else {
-          // Convert the returned object of objects into array of objects
-          var places = Object.keys(placesObj).map(key => placesObj[key])
-          // And get the first 20 objects by distance from the appointed geolocation
-          if (places.length > 20) {
-            places = getPlacesNearby(req.body.lat, req.body.lon, places)
-          }
-          // Sort the array of results by ratings in descending order and respond
-          res.json(places.sort((a,b)=> {return (a.rating > b.rating) ? 1 : ((b.rating > a.rating) ? -1 : 0);} ).reverse())
-        }
-      })
+      var results = searchFor(terms)
+      if (results.name === 'error') {
+        res.send(results.error)
+      }
+      // And get the first 20 objects by distance from the appointed geolocation
+      if (results.length > 20) {
+        results = getPlacesNearby(req.body.lat, req.body.lon, places)
+      }
+      // Sort the array of results by ratings in descending order and respond
+      res.json(results.sort((a,b)=> { return (a.rating > b.rating) ? 1 : ((b.rating > a.rating) ? -1 : 0) }).reverse())
     }
   })
   // API for getting a place with ID
@@ -174,7 +171,7 @@ var createToken = user=> {
     level: user.level,
     accountType: user.accountType
   }, secret, {
-    expiresIn: '1h'
+    expiresIn: '24h'
   })
   return token
 }
@@ -246,6 +243,61 @@ var getPlacesNearby = (lat, lon, allData)=> {
   // Only return the closest 20 places
   for (i = 0; i < 20; i++) {
     results[i] = allData[i]
+  }
+  return results
+}
+// Function for trimming white spaces on both sides of the string, used in api.post('/placesUniversalSearch')
+var trim = x=> {
+  return x.replace(/^\s+|\s+$/gm,'');
+}
+// Function for checking if an item exists, used in searchFor()
+var itemExists = (haystack, needle)=> {
+  for (var i = 0; i < Object.keys(haystack).length; i++) {
+    if (compareObjects(haystack[i], needle)) {
+      return true
+    }
+  }
+  return false
+}
+// Function for comparing 2 json objects, used in itemExists()
+var compareObjects = (o1, o2)=> {
+  var k = ''
+  for (k in o1) {
+    if (o1[k] != o2[k]) {
+      return false
+    }
+  }
+  for (k in o2) {
+    if(o1[k] != o2[k]) {
+      return false
+    }
+  }
+  return true
+}
+// Function to search for all of the objects based on the terms
+var searchFor = terms=> {
+  var results = []
+  for (var j = 0; j < terms.length; j++) {
+    var term = new RegExp(terms[j], 'i')
+    Place.find({ $or: [
+      {name: term}, {category: term}, {subCategory: term},
+      {address: term}, {city: term}, {state: term}, {zip: term},
+      {description: term}, {hours: term}
+    ] }, (err, places)=> {
+      console.log(places);
+      if (err) {
+        return {
+          name: 'error',
+          error: err
+        }
+      } else {
+        for (var i in places) {
+          if (!itemExists(results, places[i])) {
+            results.push(places[i])
+          }
+        }
+      }
+    })
   }
   return results
 }
