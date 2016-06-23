@@ -250,30 +250,16 @@ var getPlacesNearby = (lat, lon, allData)=> {
 var trim = x=> {
   return x.replace(/^\s+|\s+$/gm,'');
 }
-// Function for checking if an item exists, used in searchFor()
+// Function for checking if an item exists by comparing _id, used in searchFor()
 var itemExists = (haystack, needle)=> {
   for (var i = 0; i < Object.keys(haystack).length; i++) {
-    if (compareObjects(haystack[i], needle)) {
+    if (haystack[i]['_id'].toString() === needle['_id'].toString()) {
       return true
     }
   }
   return false
 }
-// Function for comparing 2 json objects, used in itemExists()
-var compareObjects = (o1, o2)=> {
-  var k = ''
-  for (k in o1) {
-    if (o1[k] != o2[k]) {
-      return false
-    }
-  }
-  for (k in o2) {
-    if(o1[k] != o2[k]) {
-      return false
-    }
-  }
-  return true
-}
+// TODO: Fix the empty returned result[] due to async
 // Function to search for all of the objects based on the terms
 var searchFor = terms=> {
   var results = []
@@ -284,7 +270,6 @@ var searchFor = terms=> {
       {address: term}, {city: term}, {state: term}, {zip: term},
       {description: term}, {hours: term}
     ] }, (err, places)=> {
-      console.log(places);
       if (err) {
         return {
           name: 'error',
@@ -292,8 +277,8 @@ var searchFor = terms=> {
         }
       } else {
         for (var i in places) {
-          if (!itemExists(results, places[i])) {
-            results.push(places[i])
+          if (!itemExists(results, places[i].toObject())) {
+            results.push(places[i].toObject())
           }
         }
       }
