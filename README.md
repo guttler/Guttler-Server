@@ -4,7 +4,7 @@
 
 ## Getting started
 
-1. Clone this repo using `git clone https://github.com/guttler/Guttler-Server.git`, or clone it directly through Github client
+1. Clone this repo using `git clone https://github.com/guttler/Guttler-Server.git`, or clone it directly through Github
 
 2. Run `npm install` to install the dependencies.
 
@@ -12,11 +12,21 @@
    - For development and testing, install nodemon using `npm install -g nodemon`, and run `nodemon server.js` to start the server.
    - For deploying, install forever using `npm install -g forever` on AWS, and run `forever server.js` to start the server
 
-## Accessing APIs
+## Security Notes
 
 1. A token must be provided inside the **headers** of the network request unless you are signing in or signing up, the format would just be { token: XXXXXXXXXX }
 
-2. Some APIs aren't accessible because of account type. For example, **post('/updatePlace')** is only accessible by place owners and administrators
+2. The type of device also must be provided inside the **headers** of the network request all the time, the format would just be { deviceType: 'Web' } or { deviceType: 'iOS' } or { deviceType: 'Android' }
+
+3. Some APIs aren't accessible because of account type. For example, **post('/updatePlace')** is only accessible by place owners and administrators
+
+4. Token refreshing rules:
+
+  - It should always be refreshed when password is changed **( Need to be implemented in all clients )**
+
+  - Web: It should be refreshed when the user opens the web homepage and every one hour **( Need to be implemented in all clients )**
+
+  - App: Token never expires
 
 ## API Reference
 
@@ -30,6 +40,11 @@
  - **Return value:** message indicating successful connection
 
 2. Authentication APIs:
+
+**get('/refreshToken')**
+- API for refreshing a token
+- **Parameters:** none, just make sure token is still valid and both token and deviceType are stored in req.headers
+- **Return value:** renewed token containing user's information
 
  **post('/signInWithEmail')**
  - Normal sign in method with a unique email and password
@@ -55,7 +70,6 @@
 
  **post('/searchPlaces')**
  - API for text search of "Places" table
- - **WARNING**: unable to search with numbers because of MongoDB, except zip
  - **Parameters:** terms: the user input, lon and lat: longitude and latitude of a geolocation, can be user's current location or user's selected location on the map
  - **Return value:** an **array** of at most 20 "Places" object
 

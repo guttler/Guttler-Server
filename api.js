@@ -3,6 +3,7 @@
 
 
 /** ****************************** Base Package Setup ****************************** **/
+"use strict"
 var jwt = require('jsonwebtoken')
 var secret = 'Purdue University'
 var User = require('./models/user')
@@ -21,6 +22,11 @@ module.exports = (app, express)=> {
   })
 
   // ********************* User: ********************* //
+  // API for refreshing a token
+  api.get('/refreshToken', auth, (req, res)=> {
+    let token = createToken(req.decoded, req.decoded.deviceType)
+    res.json({ token: token })
+  })
   // Sign In with email API
   api.post('/signInWithEmail', (req, res)=> {
     User.findOne({
@@ -36,7 +42,7 @@ module.exports = (app, express)=> {
         if (!validPassword) {
           res.send({ message: "Invalid Password"});
         } else {
-          var token = createToken(user);
+          var token = createToken(user, req.headers.deviceType);
           res.json({
             success: true,
             message: "Login Successfully!",
@@ -60,7 +66,7 @@ module.exports = (app, express)=> {
       accountType: req.body.accountType,
       loginMethod: req.body.loginMethod
     })
-    var token = createToken(user)
+    var token = createToken(user, req.headers.deviceType)
     user.save(err=> {
       if (err) {
         res.send(err)
@@ -111,9 +117,10 @@ module.exports = (app, express)=> {
       return
     } else {
       // Get the terms, trim the white spaces around the terms, and separate all the words inside terms into an array
-      var terms = trim(req.body.terms).split(' ')
+      let terms = trim(req.body.terms).split(' ')
       // Search for all of the objects based on the terms
-      var results = searchFor(terms)
+      let results = searchFor(terms)
+      console.log(results);
       if (results.name === 'error') {
         res.send(results.error)
       }
@@ -160,19 +167,35 @@ module.exports = (app, express)=> {
 
 /** ******************************* Global Functions ******************************* **/
 // Function that creates tokens for users with jsonwebtoken
-var createToken = user=> {
-  var token = jwt.sign({
-    email: user.email,
-    nickname: user.nickname,
-    gender: user.gender,
-    DOB: user.DOB,
-    hometown: user.hometown,
-    experience: user.experience,
-    level: user.level,
-    accountType: user.accountType
-  }, secret, {
-    expiresIn: '24h'
-  })
+var createToken = (user, deviceType)=> {
+  let token
+  if (deviceType != "Web") {
+    token = jwt.sign({
+      email: user.email,
+      nickname: user.nickname,
+      gender: user.gender,
+      DOB: user.DOB,
+      hometown: user.hometown,
+      experience: user.experience,
+      level: user.level,
+      accountType: user.accountType,
+      deviceType: deviceType
+    }, secret)
+  } else {
+    token = jwt.sign({
+      email: user.email,
+      nickname: user.nickname,
+      gender: user.gender,
+      DOB: user.DOB,
+      hometown: user.hometown,
+      experience: user.experience,
+      level: user.level,
+      accountType: user.accountType,
+      deviceType: deviceType
+    }, secret, {
+      expiresIn: '7d'
+    })
+  }
   return token
 }
 // Function to verify token, it will be called on specific APIs that need to be secured
@@ -181,7 +204,7 @@ var auth = (req, res, next)=> {
   if (token) {
     jwt.verify(token, secret, (err, decoded)=> {
       if (err) {
-        res.status(403).send({ success: false, message: "Failed to authenticate user." })
+        res.status(403).send(err)
       } else {
         req.decoded = decoded
         next()
@@ -197,7 +220,7 @@ var authOwner = (req, res, next)=> {
   if (token) {
     jwt.verify(token, secret, (err, decoded)=> {
       if (err) {
-        res.status(403).send({ success: false, message: "Failed to authenticate user." })
+        res.status(403).send(err)
       } else {
         if (decoded.accountType == 'owner' || decoded.accountType == 'admin') {
           req.decoded = decoded
@@ -262,8 +285,8 @@ var itemExists = (haystack, needle)=> {
 // TODO: Fix the empty returned result[] due to async
 // Function to search for all of the objects based on the terms
 var searchFor = terms=> {
-  var results = []
-  for (var j = 0; j < terms.length; j++) {
+  let results = []
+  for (let j = 0; j < terms.length; j++) {
     var term = new RegExp(terms[j], 'i')
     Place.find({ $or: [
       {name: term}, {category: term}, {subCategory: term},
@@ -276,13 +299,14 @@ var searchFor = terms=> {
           error: err
         }
       } else {
-        for (var i in places) {
+        for (let i in places) {
           if (!itemExists(results, places[i].toObject())) {
             results.push(places[i].toObject())
           }
         }
       }
     })
+    console.log(results);
   }
   return results
 }
