@@ -39,12 +39,12 @@
  - **Parameters:** none
  - **Return value:** message indicating successful connection
 
-2. Authentication APIs:
+2. Authentication APIs
 
-**get('/refreshToken')**
-- API for refreshing a token
-- **Parameters:** none, just make sure token is still valid and both token and deviceType are stored in req.headers
-- **Return value:** renewed token containing user's information
+  **get('/refreshToken')**
+  - API for refreshing a token
+  - **Parameters:** none, just make sure token is still valid and both token and deviceType are stored in req.headers
+  - **Return value:** renewed token containing user's information
 
  **post('/signInWithEmail')**
  - Normal sign in method with a unique email and password
