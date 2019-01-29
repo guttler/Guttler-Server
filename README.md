@@ -1,5 +1,7 @@
 # Guttler-Server
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/thousight/Guttler-Server.svg)](https://greenkeeper.io/)
+
 -----
 
 ## Getting started
